@@ -24,7 +24,7 @@ export class AdapterExecutor {
       );
 
       if (status === 'error') {
-        throw new Error(`Adapter ${adapterId} failed: ${error}`);
+        throw new Error(`Adapter ${adapterId} failed after retries: ${error}`);
       }
 
       if (output) {
@@ -51,7 +51,7 @@ export class AdapterExecutor {
       );
 
       if (status === 'error') {
-        throw new Error(`Post-LLM adapter ${adapterId} failed: ${error}`);
+        throw new Error(`Post-LLM adapter ${adapterId} failed after retries: ${error}`);
       }
     }
   }
@@ -67,7 +67,7 @@ export class AdapterExecutor {
     const updatedContext = { ...context };
     results.forEach((result, index) => {
       if (result.status === 'error') {
-        throw new Error(`Adapter ${adapterIds[index]} failed: ${result.error}`);
+        throw new Error(`Adapter ${adapterIds[index]} failed after retries: ${result.error}`);
       }
       if (result.data) {
         Object.assign(updatedContext, result.data);

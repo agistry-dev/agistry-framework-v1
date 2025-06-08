@@ -66,6 +66,13 @@ const client = new AdapterClient({
   baseUrl: 'https://api.agistry.ai',
   headers: {
     Authorization: `Bearer ${process.env.AGISTRY_API_KEY}`
+  },
+  // Configure retry behavior
+  retry: {
+    maxAttempts: 3,        // Try up to 3 times
+    baseDelay: 1000,       // Start with 1 second delay
+    maxDelay: 10000,       // Cap delays at 10 seconds
+    backoffMultiplier: 2   // Double delay each retry (1s, 2s, 4s...)
   }
 });
 
@@ -203,6 +210,29 @@ class AdapterExecutor {
 }
 ```
 
+## Retry Configuration
+
+Agistry includes built-in retry logic with exponential backoff to handle transient failures:
+
+```typescript
+const executor = new AdapterExecutor({
+  baseUrl: process.env.AGISTRY_API_URL,
+  headers: { Authorization: `Bearer ${process.env.AGISTRY_API_KEY}` },
+  retry: {
+    maxAttempts: 5,        // Retry up to 5 times (default: 3)
+    baseDelay: 500,        // Start with 500ms delay (default: 1000ms)
+    maxDelay: 30000,       // Cap at 30 seconds (default: 10000ms)
+    backoffMultiplier: 1.5 // Gentler backoff (default: 2)
+  }
+});
+```
+
+**How it works:**
+- Automatically retries on network errors and 5xx server errors
+- Won't retry on 4xx client errors (bad requests, auth failures, etc.)
+- Uses exponential backoff: 500ms → 750ms → 1125ms → 1687ms → 2531ms
+- Logs retry attempts for debugging
+
 ## Common Patterns
 
 ### Document Analysis Flow
@@ -281,4 +311,4 @@ AGISTRY_LOG_LEVEL=info
 
 ---
 
-For detailed API documentation and examples, visit our [documentation](https://docs.agistry.dev).
+For detailed API documentation and examples, visit our [documentation](https://docs.agistry.ai).
