@@ -30,11 +30,32 @@ export interface RetryConfig {
   backoffMultiplier: number; // for exponential backoff
 }
 
+// Health Check Types
+export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+
+export interface AdapterHealth {
+  status: HealthStatus;
+  latency: number;
+  lastCheck: Date;
+  message?: string;
+}
+
+export interface SystemHealth {
+  status: HealthStatus;
+  adapters: Record<AdapterId, AdapterHealth>;
+  timestamp: Date;
+}
+
 export interface AdapterConfig {
   baseUrl: string;
   headers?: Record<string, string>;
   timeout?: number;
   retry?: Partial<RetryConfig>;
+  healthCheck?: {
+    enabled: boolean;
+    interval: number; // Check interval in ms
+    timeout: number; // Health check timeout
+  };
 }
 
 // Circuit Breaker States
