@@ -52,7 +52,16 @@ export class HealthManager {
   }
 
   async checkSystemHealth(): Promise<SystemHealth> {
-    const adapters: Record<AdapterId, AdapterHealth> = {} as Record<AdapterId, AdapterHealth>;
+    const adapters = Object.keys(adapterRegistry).reduce((acc, adapterId) => {
+      acc[adapterId as AdapterId] = {
+        status: 'unhealthy',
+        latency: 0,
+        lastCheck: new Date(),
+        message: 'Not checked yet'
+      };
+      return acc;
+    }, {} as Record<AdapterId, AdapterHealth>);
+
     let overallStatus: HealthStatus = 'healthy';
 
     // Check each adapter
@@ -106,11 +115,20 @@ export class HealthManager {
   getLastSystemHealth(): SystemHealth | undefined {
     if (!this.lastSystemCheck) return undefined;
 
-    const adapters: Record<AdapterId, AdapterHealth> = {};
+    const adapters = Object.keys(adapterRegistry).reduce((acc, adapterId) => {
+      const health = this.healthState.get(adapterId as AdapterId);
+      acc[adapterId as AdapterId] = health || {
+        status: 'unhealthy',
+        latency: 0,
+        lastCheck: new Date(),
+        message: 'Not checked yet'
+      };
+      return acc;
+    }, {} as Record<AdapterId, AdapterHealth>);
+
     let overallStatus: HealthStatus = 'healthy';
 
-    this.healthState.forEach((health, adapterId) => {
-      adapters[adapterId] = health;
+    Object.values(adapters).forEach(health => {
       if (health.status === 'unhealthy') {
         overallStatus = 'unhealthy';
       } else if (health.status === 'degraded' && overallStatus === 'healthy') {
