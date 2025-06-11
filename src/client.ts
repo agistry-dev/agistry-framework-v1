@@ -1,5 +1,6 @@
 import { AdapterRequest, AdapterResponse, AdapterConfig, AdapterId, AdapterContext, RetryConfig } from './types';
 import { isValidAdapterId } from './adapterRegistry';
+import { HealthManager } from './healthManager';
 
 export class AdapterClient {
   private config: AdapterConfig;
@@ -9,12 +10,19 @@ export class AdapterClient {
     maxDelay: 10000, // 10 seconds max
     backoffMultiplier: 2
   };
+  private healthManager: HealthManager;
 
   constructor(config: AdapterConfig) {
     this.config = {
       timeout: 30000,  // Default 30s timeout
       ...config
     };
+    this.healthManager = new HealthManager(this);
+
+    // Start health monitoring if enabled
+    if (this.config.healthCheck?.enabled) {
+      this.healthManager.startMonitoring(this.config.healthCheck.interval);
+    }
   }
 
   private async sleep(ms: number): Promise<void> {
@@ -103,5 +111,22 @@ export class AdapterClient {
     return Promise.all(
       adapterIds.map(adapterId => this.callAdapter(adapterId, input, context))
     );
+  }
+
+  // Health check methods
+  getHealthManager(): HealthManager {
+    return this.healthManager;
+  }
+
+  async checkHealth(): Promise<void> {
+    await this.healthManager.checkSystemHealth();
+  }
+
+  startHealthMonitoring(interval?: number): void {
+    this.healthManager.startMonitoring(interval);
+  }
+
+  stopHealthMonitoring(): void {
+    this.healthManager.stopMonitoring();
   }
 } 

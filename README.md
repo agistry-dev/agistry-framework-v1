@@ -309,6 +309,44 @@ AGISTRY_LOG_LEVEL=info
   - Audit trail enhancements
   - Custom adapter development tools
 
+## Health Monitoring
+
+Agistry includes built-in health monitoring for all adapters:
+
+```typescript
+const executor = new AdapterExecutor({
+  baseUrl: process.env.AGISTRY_API_URL,
+  headers: { Authorization: `Bearer ${process.env.AGISTRY_API_KEY}` },
+  healthCheck: {
+    enabled: true,           // Enable health monitoring
+    interval: 30000,         // Check every 30 seconds
+    timeout: 5000           // Health check timeout
+  }
+});
+
+// Get current health status
+const health = await executor.client.getHealthManager().checkSystemHealth();
+console.log('System Status:', health.status); // 'healthy', 'degraded', or 'unhealthy'
+console.log('Adapter Health:', health.adapters);
+
+// Start/stop monitoring
+executor.client.startHealthMonitoring(60000); // Check every minute
+executor.client.stopHealthMonitoring();
+
+// Get health for specific adapter
+const adapterHealth = executor.client.getHealthManager().getAdapterHealth('pdf-text-extractor');
+if (adapterHealth?.status === 'unhealthy') {
+  console.error('PDF extractor is down:', adapterHealth.message);
+}
+```
+
+**How it works:**
+- Monitors all registered adapters
+- Tracks latency and availability
+- Auto-detects degraded performance
+- Provides real-time health status
+- Supports custom check intervals
+
 ---
 
 For detailed API documentation and examples, visit our [documentation](https://docs.agistry.ai).

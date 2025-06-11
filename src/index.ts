@@ -3,6 +3,7 @@ export * from './types';
 export * from './client';
 export * from './executor';
 export * from './adapterRegistry';
+export * from './healthManager';
 
 // Re-export commonly used types for convenience
 export type {
@@ -11,7 +12,10 @@ export type {
   AdapterContext,
   AdapterRequest,
   AdapterResponse,
-  AdapterConfig
+  AdapterConfig,
+  HealthStatus,
+  AdapterHealth,
+  SystemHealth
 } from './types';
 
 // Default export
