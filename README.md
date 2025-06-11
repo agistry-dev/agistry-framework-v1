@@ -347,6 +347,21 @@ if (adapterHealth?.status === 'unhealthy') {
 - Provides real-time health status
 - Supports custom check intervals
 
+## Adapter Discovery
+
+Get a list of all available adapters:
+
+```typescript
+const client = new AdapterClient({
+  baseUrl: 'https://api.agistry.ai',
+  headers: { Authorization: `Bearer ${API_KEY}` }
+});
+
+// Get available adapters
+const adapters = await client.getAvailableAdapters();
+console.log('Available adapters:', adapters);
+```
+
 ---
 
 For detailed API documentation and examples, visit our [documentation](https://docs.agistry.ai).

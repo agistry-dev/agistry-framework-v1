@@ -3,6 +3,24 @@ import { adapterRegistry } from './adapterRegistry';
 export type AdapterId = keyof typeof adapterRegistry;
 export type AdapterType = (typeof adapterRegistry)[AdapterId]['type'];
 
+// Adapter Discovery Types
+export interface AdapterMetadata {
+  id: AdapterId;
+  type: AdapterType;
+  name: string;
+  description: string;
+  version: string;
+  capabilities: string[];
+  inputSchema?: Record<string, any>;
+  outputSchema?: Record<string, any>;
+}
+
+export interface AdapterDiscoveryResponse {
+  adapters: AdapterMetadata[];
+  total: number;
+  timestamp: Date;
+}
+
 export type AdapterContext = {
   userId?: string;
   chatId?: string;

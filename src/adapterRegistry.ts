@@ -12,8 +12,7 @@ export const adapterRegistry = {
   // Notification & Logging
   'slack-sender': { type: 'action' as const },
   'db-logger': { type: 'action' as const },
-  'telegram-alert': { type: 'action' as const },
-  
+  'telegram-alert': { type: 'action' as const }
 } as const;
 
 // Helper function to validate adapter IDs at runtime
@@ -24,4 +23,5 @@ export function isValidAdapterId(id: string): id is keyof typeof adapterRegistry
 // Helper function to get adapter type
 export function getAdapterType(id: keyof typeof adapterRegistry): AdapterType {
   return adapterRegistry[id].type;
-} 
+}
+

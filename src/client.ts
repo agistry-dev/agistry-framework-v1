@@ -1,4 +1,4 @@
-import { AdapterRequest, AdapterResponse, AdapterConfig, AdapterId, AdapterContext, RetryConfig } from './types';
+import { AdapterRequest, AdapterResponse, AdapterConfig, AdapterId, AdapterContext, RetryConfig, AdapterDiscoveryResponse } from './types';
 import { isValidAdapterId } from './adapterRegistry';
 import { HealthManager } from './healthManager';
 
@@ -128,5 +128,42 @@ export class AdapterClient {
 
   stopHealthMonitoring(): void {
     this.healthManager.stopMonitoring();
+  }
+
+  // Adapter Discovery Methods
+  async getAvailableAdapters() {
+    const response = await fetch(`${this.config.baseUrl}/adapters`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.config.headers
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch adapters: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async getAdapterInfo(adapterId: AdapterId): Promise<AdapterDiscoveryResponse['adapters'][0] | null> {
+    if (!isValidAdapterId(adapterId)) {
+      throw new Error(`Invalid adapter ID: ${adapterId}`);
+    }
+
+    const response = await fetch(`${this.config.baseUrl}/adapters/${adapterId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.config.headers
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch adapter info: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 } 
