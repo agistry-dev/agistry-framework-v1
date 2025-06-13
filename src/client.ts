@@ -1,6 +1,7 @@
-import { AdapterRequest, AdapterResponse, AdapterConfig, AdapterId, AdapterContext, RetryConfig, AdapterDiscoveryResponse } from './types';
+import { AdapterRequest, AdapterResponse, AdapterConfig, AdapterId, AdapterContext, RetryConfig, AdapterDiscoveryResponse, LogConfig } from './types';
 import { isValidAdapterId } from './adapterRegistry';
 import { HealthManager } from './healthManager';
+import { Logger } from './logger';
 
 export class AdapterClient {
   private config: AdapterConfig;
@@ -11,6 +12,7 @@ export class AdapterClient {
     backoffMultiplier: 2
   };
   private healthManager: HealthManager;
+  private logger: Logger;
 
   constructor(config: AdapterConfig) {
     this.config = {
@@ -18,6 +20,7 @@ export class AdapterClient {
       ...config
     };
     this.healthManager = new HealthManager(this);
+    this.logger = new Logger(this.config.logging);
 
     // Start health monitoring if enabled
     if (this.config.healthCheck?.enabled) {
@@ -50,6 +53,7 @@ export class AdapterClient {
     context: AdapterContext = {}
   ): Promise<AdapterResponse> {
     if (!isValidAdapterId(adapterId)) {
+      this.logger.error(`Invalid adapter ID: ${adapterId}`);
       throw new Error(`Invalid adapter ID: ${adapterId}`);
     }
 
@@ -63,6 +67,8 @@ export class AdapterClient {
           input,
           context
         };
+
+        this.logger.debug(`Calling adapter ${adapterId}`, { request });
 
         const response = await fetch(`${this.config.baseUrl}/run-adapter`, {
           method: 'POST',
@@ -79,9 +85,12 @@ export class AdapterClient {
           throw error;
         }
 
-        return await response.json();
+        const result = await response.json();
+        this.logger.debug(`Adapter ${adapterId} response`, { result });
+        return result;
       } catch (error) {
         lastError = error;
+        this.logger.warn(`Adapter ${adapterId} attempt ${attempt} failed`, { error });
         
         if (!this.shouldRetry(error, attempt, retryConfig.maxAttempts)) {
           break;
@@ -89,17 +98,19 @@ export class AdapterClient {
 
         if (attempt < retryConfig.maxAttempts) {
           const delay = this.getRetryDelay(attempt, retryConfig);
-          console.log(`Retrying ${adapterId} in ${delay}ms (attempt ${attempt}/${retryConfig.maxAttempts})`);
+          this.logger.info(`Retrying ${adapterId} in ${delay}ms (attempt ${attempt}/${retryConfig.maxAttempts})`);
           await this.sleep(delay);
         }
       }
     }
 
     // If we get here, all retries failed
-    return {
+    const errorResponse: AdapterResponse = {
       status: 'error',
       error: lastError instanceof Error ? lastError.message : 'Unknown error occurred'
     };
+    this.logger.error(`Adapter ${adapterId} failed after all retries`, { error: errorResponse });
+    return errorResponse;
   }
 
   // Batch adapter execution
@@ -108,6 +119,7 @@ export class AdapterClient {
     input: string | null,
     context: AdapterContext = {}
   ): Promise<AdapterResponse[]> {
+    this.logger.debug('Starting batch adapter execution', { adapterIds, context });
     return Promise.all(
       adapterIds.map(adapterId => this.callAdapter(adapterId, input, context))
     );
@@ -119,19 +131,23 @@ export class AdapterClient {
   }
 
   async checkHealth(): Promise<void> {
+    this.logger.debug('Running health check');
     await this.healthManager.checkSystemHealth();
   }
 
   startHealthMonitoring(interval?: number): void {
+    this.logger.info('Starting health monitoring', { interval });
     this.healthManager.startMonitoring(interval);
   }
 
   stopHealthMonitoring(): void {
+    this.logger.info('Stopping health monitoring');
     this.healthManager.stopMonitoring();
   }
 
   // Adapter Discovery Methods
   async getAvailableAdapters() {
+    this.logger.debug('Fetching available adapters');
     const response = await fetch(`${this.config.baseUrl}/adapters`, {
       method: 'GET',
       headers: {
@@ -141,15 +157,22 @@ export class AdapterClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch adapters: ${response.statusText}`);
+      const error = `Failed to fetch adapters: ${response.statusText}`;
+      this.logger.error(error);
+      throw new Error(error);
     }
 
-    return response.json();
+    const adapters = await response.json();
+    this.logger.debug('Available adapters', { adapters });
+    return adapters;
   }
 
   async getAdapterInfo(adapterId: AdapterId): Promise<AdapterDiscoveryResponse['adapters'][0] | null> {
+    this.logger.debug(`Fetching adapter info for ${adapterId}`);
     if (!isValidAdapterId(adapterId)) {
-      throw new Error(`Invalid adapter ID: ${adapterId}`);
+      const error = `Invalid adapter ID: ${adapterId}`;
+      this.logger.error(error);
+      throw new Error(error);
     }
 
     const response = await fetch(`${this.config.baseUrl}/adapters/${adapterId}`, {
@@ -161,9 +184,26 @@ export class AdapterClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch adapter info: ${response.statusText}`);
+      const error = `Failed to fetch adapter info: ${response.statusText}`;
+      this.logger.error(error);
+      throw new Error(error);
     }
 
-    return response.json();
+    const info = await response.json();
+    this.logger.debug(`Adapter info for ${adapterId}`, { info });
+    return info;
+  }
+
+  // Logger methods
+  enableLogging(config?: Partial<LogConfig>): void {
+    this.logger.setConfig({ enabled: true, ...config });
+  }
+
+  disableLogging(): void {
+    this.logger.disable();
+  }
+
+  getLogger(): Logger {
+    return this.logger;
   }
 } 

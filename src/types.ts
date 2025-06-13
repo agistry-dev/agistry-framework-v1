@@ -64,6 +64,14 @@ export interface SystemHealth {
   timestamp: Date;
 }
 
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'none';
+
+export interface LogConfig {
+  level: LogLevel;
+  enabled: boolean;
+  customLogger?: (level: LogLevel, message: string, data?: any) => void;
+}
+
 export interface AdapterConfig {
   baseUrl: string;
   headers?: Record<string, string>;
@@ -74,6 +82,7 @@ export interface AdapterConfig {
     interval: number; // Check interval in ms
     timeout: number; // Health check timeout
   };
+  logging?: Partial<LogConfig>;
 }
 
 // Circuit Breaker States
