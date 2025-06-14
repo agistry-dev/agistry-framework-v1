@@ -362,6 +362,33 @@ const adapters = await client.getAvailableAdapters();
 console.log('Available adapters:', adapters);
 ```
 
+## API Key Access
+
+Monitor your API key status and usage with a simple call:
+
+```typescript
+const apiKeyInfo = await client.getApiKeyAccess();
+
+if (apiKeyInfo.status === 'ok' && apiKeyInfo.data) {
+  // Check key validity and expiration
+  console.log('API Key valid:', apiKeyInfo.data.isValid);
+  console.log('Expires:', apiKeyInfo.data.expiresAt);
+  
+  // Monitor rate limits
+  if (apiKeyInfo.data.rateLimit) {
+    console.log('Rate limit:', apiKeyInfo.data.rateLimit.limit);
+    console.log('Remaining calls:', apiKeyInfo.data.rateLimit.remaining);
+    console.log('Reset at:', apiKeyInfo.data.rateLimit.resetAt);
+  }
+  
+  // Check usage statistics
+  if (apiKeyInfo.data.usage) {
+    console.log('Total API calls:', apiKeyInfo.data.usage.totalCalls);
+    console.log('Last used:', apiKeyInfo.data.usage.lastUsed);
+  }
+}
+```
+
 ---
 
 For detailed API documentation and examples, visit our [documentation](https://docs.agistry.ai).
